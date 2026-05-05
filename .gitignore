@@ -1,0 +1,68 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual environments — uv creates .venv here, never commit it
+.venv/
+venv/
+env/
+
+# Secrets — these contain API keys, passwords, etc.
+# Never commit. Commit .env.example instead.
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# IDE-specific files (other people use different editors)
+.vscode/
+.idea/
+*.swp
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# The Bank Marketing dataset — too large for git, and re-downloadable
+data/*.csv
+data/*.parquet
+data/*.json
+data/*.zip
+
+# Trained model binaries — these belong in MLflow, not git
+*.pkl
+*.joblib
+*.h5
+*.onnx
+
+# MLflow's experiment tracking directory
+mlruns/
+mlartifacts/
+
+# Database volumes mounted from docker-compose
+postgres_data/
+redis_data/
+pgdata/
+
+# Application logs
+*.log
+logs/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Test artifacts and tool caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
