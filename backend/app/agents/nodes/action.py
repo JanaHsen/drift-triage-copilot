@@ -1,6 +1,7 @@
 import uuid
 
 from langgraph.types import RunnableConfig, interrupt
+from sqlalchemy.exc import IntegrityError
 
 from app.agents.llm import LLMClient, call_action_llm
 from app.agents.state import InvestigationState
@@ -16,20 +17,35 @@ async def action_node(state: InvestigationState, config: RunnableConfig) -> dict
     action = result.action
     updates: dict = {"proposed_action": action}
 
-    if action in ("retrain", "rollback"):
+    if action in ("replay", "retrain", "rollback"):
         key = compute_key(state["investigation_id"], action, state["model_uri_at_open"])
         updates["idempotency_key"] = key
 
-        async with session_factory() as session:
-            hil_item = HILInboxItem(
-                investigation_id=uuid.UUID(state["investigation_id"]),
-                proposed_action=action,
-                idempotency_key=key,
-                status="pending",
-            )
-            session.add(hil_item)
-            await session.commit()
+    if action in ("retrain", "rollback"):
+        try:
+            async with session_factory() as session:
+                hil_item = HILInboxItem(
+                    investigation_id=uuid.UUID(state["investigation_id"]),
+                    proposed_action=action,
+                    idempotency_key=updates["idempotency_key"],
+                    status="pending",
+                )
+                session.add(hil_item)
+                await session.commit()
+        except IntegrityError:
+            pass  # node re-ran on resume — HIL item already exists
 
-        interrupt({"proposed_action": action, "idempotency_key": key})
+        resume_data = interrupt(
+            {
+                "proposed_action": action,
+                "idempotency_key": updates["idempotency_key"],
+            }
+        )
+        approver_user_id = (
+            resume_data.get("approver_user_id")
+            if isinstance(resume_data, dict)
+            else None
+        )
+        updates["approver_user_id"] = approver_user_id
 
     return updates
