@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     langsmith_api_key: str = ""
     langsmith_tracing: bool = False
     langsmith_project: str = "drift-triage-copilot"
+    platform_base_url: str = ""
+    agent_token: str = ""
 
 
 settings = Settings()

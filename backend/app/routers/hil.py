@@ -15,6 +15,7 @@ router = APIRouter(prefix="/v1/hil")
 async def _resume_graph(
     graph,
     investigation_id: str,
+    approver_user_id: str,
     llm_client: object,
     session_factory: object,
 ) -> None:
@@ -25,13 +26,17 @@ async def _resume_graph(
             "session_factory": session_factory,
         }
     }
-    final_state = await graph.ainvoke(Command(resume={"approved": True}), config=config)
+    final_state = await graph.ainvoke(
+        Command(resume={"approved": True, "approver_user_id": approver_user_id}),
+        config=config,
+    )
     if final_state and not final_state.get("is_stale"):
         async with session_factory() as session:
             investigation = await session.get(
                 Investigation, uuid.UUID(investigation_id)
             )
             if investigation:
+                investigation.action_decided = final_state.get("proposed_action")
                 investigation.summary = final_state.get("summary")
                 investigation.resolution = final_state.get("resolution")
                 investigation.status = "resolved"
@@ -72,6 +77,7 @@ async def approve_hil_item(
         _resume_graph,
         request.app.state.graph,
         str(investigation.id),
+        body.approver_user_id,
         request.app.state.llm_client,
         request.app.state.session_factory,
     )

@@ -13,6 +13,7 @@ class InvestigationState(TypedDict):
     triage_result: str | None  # "real_drift" | "no_drift"
     proposed_action: str | None  # "no_op" | "replay" | "retrain" | "rollback"
     idempotency_key: str | None
+    approver_user_id: str | None
     is_stale: bool
     dispatched: bool
     summary: str | None
