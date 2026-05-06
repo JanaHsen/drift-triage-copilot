@@ -58,6 +58,12 @@ logs/
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
 
+# Claude Code project-local settings
+.claude/
+
+# MLflow local SQLite tracking database
+mlflow.db
+
 # Test artifacts and tool caches
 .pytest_cache/
 .coverage
