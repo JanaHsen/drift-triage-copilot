@@ -1,0 +1,34 @@
+# .dockerignore at repo root
+
+# Version control
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# Secrets
+.env
+.env.*
+
+# Docs / dev artifacts
+*.md
+notebooks/
+docs/
+
+# Data files
+*.csv
+*.parquet
+data/
+
+# Other services' code that this service doesn't need
