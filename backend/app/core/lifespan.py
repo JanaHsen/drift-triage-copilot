@@ -32,7 +32,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         )
 
     # Psycopg pool — used by LangGraph's Postgres checkpointer (separate from SQLAlchemy)
-    psycopg_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+    psycopg_url = settings.database_url.replace(
+        "postgresql+asyncpg://", "postgresql://"
+    )
     async with AsyncConnectionPool(
         conninfo=psycopg_url,
         max_size=10,

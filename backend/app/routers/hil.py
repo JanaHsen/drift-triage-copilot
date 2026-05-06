@@ -28,7 +28,9 @@ async def _resume_graph(
     final_state = await graph.ainvoke(Command(resume={"approved": True}), config=config)
     if final_state and not final_state.get("is_stale"):
         async with session_factory() as session:
-            investigation = await session.get(Investigation, uuid.UUID(investigation_id))
+            investigation = await session.get(
+                Investigation, uuid.UUID(investigation_id)
+            )
             if investigation:
                 investigation.summary = final_state.get("summary")
                 investigation.resolution = final_state.get("resolution")
@@ -48,7 +50,9 @@ async def approve_hil_item(
     if not item:
         raise HTTPException(status_code=404, detail="HIL item not found")
     if item.status != "pending":
-        raise HTTPException(status_code=409, detail=f"HIL item is already {item.status}")
+        raise HTTPException(
+            status_code=409, detail=f"HIL item is already {item.status}"
+        )
 
     investigation = await session.get(Investigation, item.investigation_id)
     if investigation is None:
@@ -85,7 +89,9 @@ async def reject_hil_item(
     if not item:
         raise HTTPException(status_code=404, detail="HIL item not found")
     if item.status != "pending":
-        raise HTTPException(status_code=409, detail=f"HIL item is already {item.status}")
+        raise HTTPException(
+            status_code=409, detail=f"HIL item is already {item.status}"
+        )
 
     item.status = "rejected"
     item.approver_user_id = body.approver_user_id

@@ -28,7 +28,9 @@ async def _run_graph(
     final_state = await graph.ainvoke(state, config=config)
     if final_state and not final_state.get("is_stale"):
         async with session_factory() as session:
-            investigation = await session.get(Investigation, uuid.UUID(investigation_id))
+            investigation = await session.get(
+                Investigation, uuid.UUID(investigation_id)
+            )
             if investigation:
                 investigation.action_decided = final_state.get("proposed_action")
                 investigation.summary = final_state.get("summary")

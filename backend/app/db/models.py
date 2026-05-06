@@ -79,4 +79,6 @@ class AuditLog(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    investigation: Mapped["Investigation"] = relationship(back_populates="audit_entries")
+    investigation: Mapped["Investigation"] = relationship(
+        back_populates="audit_entries"
+    )
