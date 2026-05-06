@@ -1,6 +1,10 @@
+from langgraph.types import RunnableConfig
+
+from app.agents.llm import LLMClient, call_action_llm
 from app.agents.state import InvestigationState
 
 
-def action_node(state: InvestigationState) -> dict:
-    # Stub — real implementation uses LLM + interrupt() for HIL in Step 7
-    return {"proposed_action": "no_op"}
+async def action_node(state: InvestigationState, config: RunnableConfig) -> dict:
+    client: LLMClient = config["configurable"]["llm_client"]
+    result = await call_action_llm(state, client)
+    return {"proposed_action": result.action}

@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     database_url: str
     redis_url: str
     openai_api_key: str = ""
+    anthropic_api_key: str = ""
     langsmith_api_key: str = ""
     langsmith_tracing: bool = False
     langsmith_project: str = "drift-triage-copilot"

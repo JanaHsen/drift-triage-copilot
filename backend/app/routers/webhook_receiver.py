@@ -9,8 +9,8 @@ from app.schemas.investigations import DriftWebhookPayload
 router = APIRouter(prefix="/v1/webhooks")
 
 
-async def _run_graph(graph, state: InvestigationState, investigation_id: str) -> None:
-    config = {"configurable": {"thread_id": investigation_id}}
+async def _run_graph(graph, state: InvestigationState, investigation_id: str, llm_client: object) -> None:
+    config = {"configurable": {"thread_id": investigation_id, "llm_client": llm_client}}
     await graph.ainvoke(state, config=config)
 
 
@@ -52,7 +52,7 @@ async def receive_drift_webhook(
     }
 
     background_tasks.add_task(
-        _run_graph, request.app.state.graph, initial_state, str(investigation.id)
+        _run_graph, request.app.state.graph, initial_state, str(investigation.id), request.app.state.llm_client
     )
 
     return {"status": "accepted", "investigation_id": str(investigation.id)}

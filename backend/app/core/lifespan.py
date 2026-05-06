@@ -3,6 +3,8 @@ from typing import AsyncGenerator
 
 import structlog
 from fastapi import FastAPI
+from anthropic import AsyncAnthropic
+from openai import AsyncOpenAI
 from psycopg_pool import AsyncConnectionPool
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
@@ -19,6 +21,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     engine = build_engine(settings.database_url)
     app.state.engine = engine
     app.state.session_factory = build_session_factory(engine)
+
+    if settings.openai_api_key:
+        app.state.llm_client = AsyncOpenAI(api_key=settings.openai_api_key)
+    elif settings.anthropic_api_key:
+        app.state.llm_client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+    else:
+        raise RuntimeError("No LLM API key configured — set OPENAI_API_KEY or ANTHROPIC_API_KEY")
 
     # Psycopg pool — used by LangGraph's Postgres checkpointer (separate from SQLAlchemy)
     psycopg_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
