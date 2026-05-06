@@ -51,11 +51,13 @@ async def call_triage_llm(state: InvestigationState, client: LLMClient) -> Triag
             model="claude-haiku-4-5-20251001",
             max_tokens=1024,
             system=prompts.triage.SYSTEM,
-            tools=[{
-                "name": "submit_triage",
-                "description": "Submit the triage verdict and reasoning",
-                "input_schema": TriageOutput.model_json_schema(),
-            }],
+            tools=[
+                {
+                    "name": "submit_triage",
+                    "description": "Submit the triage verdict and reasoning",
+                    "input_schema": TriageOutput.model_json_schema(),
+                }
+            ],
             tool_choice={"type": "tool", "name": "submit_triage"},
             messages=[{"role": "user", "content": user_msg}],
         )
@@ -88,11 +90,13 @@ async def call_action_llm(state: InvestigationState, client: LLMClient) -> Actio
             model="claude-haiku-4-5-20251001",
             max_tokens=1024,
             system=prompts.action.SYSTEM,
-            tools=[{
-                "name": "submit_action",
-                "description": "Submit the recommended action and reasoning",
-                "input_schema": ActionOutput.model_json_schema(),
-            }],
+            tools=[
+                {
+                    "name": "submit_action",
+                    "description": "Submit the recommended action and reasoning",
+                    "input_schema": ActionOutput.model_json_schema(),
+                }
+            ],
             tool_choice={"type": "tool", "name": "submit_action"},
             messages=[{"role": "user", "content": user_msg}],
         )
@@ -128,11 +132,13 @@ async def call_comms_llm(state: InvestigationState, client: LLMClient) -> CommsO
             model="claude-haiku-4-5-20251001",
             max_tokens=1024,
             system=prompts.comms.SYSTEM,
-            tools=[{
-                "name": "submit_comms",
-                "description": "Submit the investigation summary and resolution",
-                "input_schema": CommsOutput.model_json_schema(),
-            }],
+            tools=[
+                {
+                    "name": "submit_comms",
+                    "description": "Submit the investigation summary and resolution",
+                    "input_schema": CommsOutput.model_json_schema(),
+                }
+            ],
             tool_choice={"type": "tool", "name": "submit_comms"},
             messages=[{"role": "user", "content": user_msg}],
         )

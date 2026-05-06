@@ -10,21 +10,13 @@ jobs:
   ruff:
     name: Ruff
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
 
       - uses: astral-sh/setup-uv@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: uv sync --frozen --group dev
 
       - name: Check formatting
-        run: uv run ruff format --check app/
+        run: uvx ruff format --check backend/app/
 
       - name: Check linting
-        run: uv run ruff check app/
+        run: uvx ruff check backend/app/
