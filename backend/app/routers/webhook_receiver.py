@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,9 +11,18 @@ from app.schemas.investigations import DriftWebhookPayload
 router = APIRouter(prefix="/v1/webhooks")
 
 
-async def _run_graph(graph, state: InvestigationState, investigation_id: str, llm_client: object) -> None:
-    config = {"configurable": {"thread_id": investigation_id, "llm_client": llm_client}}
-    await graph.ainvoke(state, config=config)
+async def _run_graph(graph, state: InvestigationState, investigation_id: str, llm_client: object, session_factory: object) -> None:
+    config = {"configurable": {"thread_id": investigation_id, "llm_client": llm_client, "session_factory": session_factory}}
+    final_state = await graph.ainvoke(state, config=config)
+    if final_state and not final_state.get("is_stale"):
+        async with session_factory() as session:
+            investigation = await session.get(Investigation, uuid.UUID(investigation_id))
+            if investigation:
+                investigation.action_decided = final_state.get("proposed_action")
+                investigation.summary = final_state.get("summary")
+                investigation.resolution = final_state.get("resolution")
+                investigation.status = "resolved"
+                await session.commit()
 
 
 @router.post("/drift", status_code=202)
@@ -46,13 +57,14 @@ async def receive_drift_webhook(
         "proposed_action": None,
         "idempotency_key": None,
         "is_stale": False,
+        "dispatched": False,
         "summary": None,
         "resolution": None,
         "next": "",
     }
 
     background_tasks.add_task(
-        _run_graph, request.app.state.graph, initial_state, str(investigation.id), request.app.state.llm_client
+        _run_graph, request.app.state.graph, initial_state, str(investigation.id), request.app.state.llm_client, request.app.state.session_factory
     )
 
     return {"status": "accepted", "investigation_id": str(investigation.id)}

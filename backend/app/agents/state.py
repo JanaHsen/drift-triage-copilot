@@ -14,6 +14,7 @@ class InvestigationState(TypedDict):
     proposed_action: str | None  # "no_op" | "replay" | "retrain" | "rollback"
     idempotency_key: str | None
     is_stale: bool
+    dispatched: bool
     summary: str | None
     resolution: str | None
     next: str                    # routing — set by supervisor on every tick
