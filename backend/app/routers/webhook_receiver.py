@@ -1,6 +1,7 @@
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.state import InvestigationState
@@ -26,14 +27,15 @@ async def _run_graph(
         }
     }
     final_state = await graph.ainvoke(state, config=config)
-    if final_state and not final_state.get("is_stale"):
+    summary = final_state.get("summary") if final_state else None
+    if final_state and not final_state.get("is_stale") and summary:
         async with session_factory() as session:
             investigation = await session.get(
                 Investigation, uuid.UUID(investigation_id)
             )
             if investigation:
                 investigation.action_decided = final_state.get("proposed_action")
-                investigation.summary = final_state.get("summary")
+                investigation.summary = summary
                 investigation.resolution = final_state.get("resolution")
                 investigation.status = "resolved"
                 await session.commit()
@@ -56,7 +58,13 @@ async def receive_drift_webhook(
         status="open",
     )
     session.add(investigation)
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Event '{payload.event_id}' has already been processed",
+        )
 
     initial_state: InvestigationState = {
         "investigation_id": str(investigation.id),
@@ -70,6 +78,7 @@ async def receive_drift_webhook(
         "triage_result": None,
         "proposed_action": None,
         "idempotency_key": None,
+        "approver_user_id": None,
         "is_stale": False,
         "dispatched": False,
         "summary": None,

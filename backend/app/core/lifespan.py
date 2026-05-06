@@ -6,6 +6,7 @@ from anthropic import AsyncAnthropic
 from fastapi import FastAPI
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from openai import AsyncOpenAI
+from psycopg import AsyncConnection
 from psycopg_pool import AsyncConnectionPool
 
 from app.agents.graph import build_graph
@@ -17,7 +18,6 @@ logger = structlog.get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    # SQLAlchemy engine — used by route handlers for our app tables
     engine = build_engine(settings.database_url)
     app.state.engine = engine
     app.state.session_factory = build_session_factory(engine)
@@ -38,9 +38,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     async with AsyncConnectionPool(
         conninfo=psycopg_url,
         max_size=10,
+        connection_class=AsyncConnection,
         kwargs={"autocommit": True, "prepare_threshold": 0},
     ) as pool:
-        checkpointer = AsyncPostgresSaver(pool)
+        checkpointer = AsyncPostgresSaver(pool)  # type: ignore[arg-type]
         await checkpointer.setup()
         app.state.graph = build_graph(checkpointer)
         logger.info("app.startup")
