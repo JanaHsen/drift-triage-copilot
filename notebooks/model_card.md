@@ -52,6 +52,6 @@ serving-side configuration value.
   "numpy": "2.4.4",
   "pandas": "2.3.3",
   "mlflow": "3.11.1",
-  "captured_at": "2026-05-06T12:32:58.229883+00:00"
+  "captured_at": "2026-05-06T16:59:59.508238+00:00"
 }
 ```
