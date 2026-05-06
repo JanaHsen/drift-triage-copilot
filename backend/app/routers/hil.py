@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime, timezone
 
-
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from langgraph.types import Command
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +12,12 @@ from app.schemas.hil import HILApproveRequest, HILRejectRequest
 router = APIRouter(prefix="/v1/hil")
 
 
-async def _resume_graph(graph, investigation_id: str, llm_client: object, session_factory: object) -> None:
+async def _resume_graph(
+    graph,
+    investigation_id: str,
+    llm_client: object,
+    session_factory: object,
+) -> None:
     config = {
         "configurable": {
             "thread_id": investigation_id,
@@ -50,7 +54,10 @@ async def approve_hil_item(
     if investigation is None:
         raise HTTPException(status_code=404, detail="Investigation not found")
     if investigation.is_stale:
-        raise HTTPException(status_code=409, detail="Investigation is stale — model URI changed since recommendation was made")
+        raise HTTPException(
+            status_code=409,
+            detail="Investigation is stale — model URI changed since recommendation was made",
+        )
 
     item.status = "approved"
     item.approver_user_id = body.approver_user_id
