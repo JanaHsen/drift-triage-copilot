@@ -10,6 +10,8 @@ RUN uv sync --frozen --no-install-project
 
 # Copy source, then install the project package itself
 COPY backend/app ./app
+COPY contracts /contracts
+ENV PYTHONPATH=/contracts
 RUN uv sync --frozen
 
 # Default command — overridden per service in docker-compose

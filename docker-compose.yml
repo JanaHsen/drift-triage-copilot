@@ -45,6 +45,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend/app:/app/app
+      - ./contracts:/contracts
 
   worker:
     build:
@@ -62,6 +63,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend/app:/app/app
+      - ./contracts:/contracts
 
 volumes:
   postgres_data:
