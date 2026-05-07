@@ -16,7 +16,15 @@ dependencies = [
     "openai>=1.0.0",
     "anthropic>=0.40.0",
     "rq>=1.16.0",
+    "tenacity>=8.2.0",
+    "langsmith[openai-agents]>=0.8.1",
+    "langchain>=1.2.17",
+    "langchain-openai>=1.2.1",
+    "contracts",
 ]
+
+[tool.uv.sources]
+contracts = { path = "../contracts" }
 
 [build-system]
 requires = ["hatchling"]
@@ -31,6 +39,7 @@ dev = [
     "mypy>=1.10.0",
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
+    "langgraph-cli[inmem]>=0.1.0",
 ]
 
 [tool.ruff]
@@ -43,3 +52,4 @@ python_version = "3.12"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["..", "."]
