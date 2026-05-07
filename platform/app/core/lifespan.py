@@ -1,33 +1,51 @@
-"""
-Lifespan handler — runs once at service startup and once at shutdown.
+"""Startup/shutdown — model, DB engine, tables, HTTP client, Redis client."""
 
-FastAPI calls the function below when the app starts. Anything yielded from it
-becomes available on app.state during the request lifecycle. After yield runs,
-the rest of the function executes at shutdown — that's where you close DB
-connections, flush logs, etc.
-
-Why an async context manager: the model loader, the DB engine, and any HTTP
-clients we open here are expensive resources that should exist for the
-service's whole lifetime, not be re-created per request. Loading them in
-lifespan means startup pays the cost once.
-
-"""
-
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
+import httpx
 from fastapi import FastAPI
+from sqlalchemy.ext.asyncio import async_sessionmaker
+
+import app.db  # noqa: F401  — registers models with Base.metadata
+from app.core.settings import settings
+from app.db.base import Base, build_engine
+from app.ml.loader import load_model
+from app.queue.client import build_redis_client
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    # === Startup ===
-    # TODO (next turn): load joblib model into app.state.model
-    # TODO (next turn): load reference stats into app.state.reference_stats
-    # TODO (next turn): create async SQLAlchemy engine into app.state.engine
-    # TODO (next turn): create httpx.AsyncClient into app.state.http_client
+    # ---- Startup ----
+    logger.info("Platform service starting up...")
+
+    app.state.loaded_model = load_model(
+        artifact_path=settings.model_artifact_path,
+        reference_stats_path=settings.reference_stats_path,
+        threshold=settings.operating_threshold,
+        model_name=settings.model_name,
+        model_version=settings.model_version,
+    )
+
+    engine = build_engine(settings.database_url)
+    app.state.engine = engine
+    app.state.session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Platform tables ensured (predictions, drift_snapshots, action_jobs, promotion_audit)")
+
+    app.state.http_client = httpx.AsyncClient(timeout=10.0)
+    app.state.redis_client = build_redis_client(settings.redis_url)
+    logger.info("HTTP client and Redis client ready")
 
     yield
-    # === Shutdown ===
-    # TODO (next turn): await app.state.engine.dispose()
-    # TODO (next turn): await app.state.http_client.aclose()
+
+    # ---- Shutdown ----
+    logger.info("Platform service shutting down...")
+    await app.state.http_client.aclose()
+    await app.state.redis_client.aclose()
+    await app.state.engine.dispose()
