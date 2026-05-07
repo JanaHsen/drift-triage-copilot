@@ -77,6 +77,3 @@ htmlcov/
 .tox/
 .mypy_cache/
 .ruff_cache/
-
-BACKEND.md
-CLAUDE.md
