@@ -38,6 +38,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://project5:app@postgres:5432/drift_triage_copilot
       REDIS_URL: redis://redis:6379/0
+      PLATFORM_BASE_URL: http://platform:8001
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,11 +52,12 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    command: uv run python app/worker.py
+    command: uv run python -m app.worker
     env_file: .env
     environment:
       DATABASE_URL: postgresql+asyncpg://project5:app@postgres:5432/drift_triage_copilot
       REDIS_URL: redis://redis:6379/0
+      PLATFORM_BASE_URL: http://platform:8001
     depends_on:
       postgres:
         condition: service_healthy
@@ -112,6 +114,23 @@ services:
       - ./contracts:/app/contracts
       - ./platform/mlops:/app/mlops
       - ./mlruns:/app/mlruns           # shared MLflow registry between platform and platform-worker
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      BACKEND_URL: http://backend:8000
+      PLATFORM_URL: http://platform:8001
+      AGENT_TOKEN: ${AGENT_TOKEN}
+    depends_on:
+      - backend
+      - platform
+    volumes:
+      - ./frontend/app.py:/app/app.py
+      - ./frontend/pages:/app/pages
 
 volumes:
   postgres_data:
