@@ -65,6 +65,54 @@ services:
       - ./backend/app:/app/app
       - ./contracts:/app/contracts
 
+  platform:
+    build:
+      context: .
+      dockerfile: platform/Dockerfile
+    # The --reload flag makes uvicorn restart on code changes — handy in dev,
+    # never in prod. The volume mounts below are what reload depends on:
+    # without them, code changes inside ./platform/app wouldn't be visible.
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - "8001:8001"  # host:container — agent is on 8000, platform on 8001
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://project5:app@postgres:5432/drift_triage_copilot
+      REDIS_URL: redis://redis:6379/0
+      AGENT_BASE_URL: http://backend:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./platform/app:/app/app
+      - ./contracts:/app/contracts
+      - ./platform/mlops:/app/mlops    # mlops/ lives inside platform/; mounted into container at /app/mlops
+      - ./mlruns:/app/mlruns           # shared MLflow registry between platform and platform-worker
+
+  platform-worker:
+    build:
+      context: .
+      dockerfile: platform/Dockerfile
+    # Override the API's uvicorn command — same image, different entry point.
+    command: uv run python -m app.worker
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://project5:app@postgres:5432/drift_triage_copilot
+      REDIS_URL: redis://redis:6379/0
+      AGENT_BASE_URL: http://backend:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./platform/app:/app/app
+      - ./contracts:/app/contracts
+      - ./platform/mlops:/app/mlops
+      - ./mlruns:/app/mlruns           # shared MLflow registry between platform and platform-worker
+
 volumes:
   postgres_data:
   redis_data:
