@@ -1,5 +1,3 @@
-"""Promotion contract — separate from action dispatch (synchronous, fast, single registry write)."""
-
 from datetime import datetime
 
 from pydantic import BaseModel
