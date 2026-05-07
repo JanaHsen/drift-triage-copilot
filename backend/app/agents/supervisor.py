@@ -1,9 +1,24 @@
+import structlog
 from langgraph.graph import END
+from langgraph.types import RunnableConfig
 
 from app.agents.state import InvestigationState
+from app.services.platform_reader import get_production_model_uri
+
+logger = structlog.get_logger()
 
 
-def supervisor_node(state: InvestigationState) -> dict:
+async def supervisor_node(state: InvestigationState, config: RunnableConfig) -> dict:
+    current_uri = await get_production_model_uri(state["model_name"])
+    if current_uri is not None and current_uri != state["model_uri_at_open"]:
+        logger.warning(
+            "supervisor.stale",
+            investigation_id=state["investigation_id"],
+            uri_at_open=state["model_uri_at_open"],
+            current_uri=current_uri,
+        )
+        return {"next": END, "is_stale": True}
+
     if state.get("is_stale"):
         return {"next": END}
 

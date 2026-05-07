@@ -1,8 +1,11 @@
 from typing import Literal, Union
 
+import anthropic as anthropic_sdk
+import openai as openai_sdk
 from anthropic import AsyncAnthropic
 from openai import AsyncOpenAI
 from pydantic import BaseModel
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from app.agents import prompts
 from app.agents.state import InvestigationState
@@ -25,6 +28,25 @@ class CommsOutput(BaseModel):
     resolution: str
 
 
+def _is_transient_llm_error(exc: BaseException) -> bool:
+    if isinstance(exc, (openai_sdk.RateLimitError, anthropic_sdk.RateLimitError)):
+        return True
+    if isinstance(exc, openai_sdk.APIStatusError) and exc.status_code >= 500:
+        return True
+    if isinstance(exc, anthropic_sdk.APIStatusError) and exc.status_code >= 500:
+        return True
+    return False
+
+
+_llm_retry = retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=10),
+    retry=retry_if_exception(_is_transient_llm_error),
+    reraise=True,
+)
+
+
+@_llm_retry
 async def call_triage_llm(state: InvestigationState, client: LLMClient) -> TriageOutput:
     drift = state["drift_summary"]
     user_msg = prompts.triage.USER.format(
@@ -44,6 +66,7 @@ async def call_triage_llm(state: InvestigationState, client: LLMClient) -> Triag
                 {"role": "user", "content": user_msg},
             ],
             response_format=TriageOutput,
+            timeout=30.0,
         )
         return response.choices[0].message.parsed  # type: ignore[return-value]
     else:
@@ -60,11 +83,13 @@ async def call_triage_llm(state: InvestigationState, client: LLMClient) -> Triag
             ],
             tool_choice={"type": "tool", "name": "submit_triage"},
             messages=[{"role": "user", "content": user_msg}],
+            timeout=30.0,
         )
         tool_block = next(b for b in response.content if b.type == "tool_use")
         return TriageOutput.model_validate(tool_block.input)
 
 
+@_llm_retry
 async def call_action_llm(state: InvestigationState, client: LLMClient) -> ActionOutput:
     drift = state["drift_summary"]
     user_msg = prompts.action.USER.format(
@@ -83,6 +108,7 @@ async def call_action_llm(state: InvestigationState, client: LLMClient) -> Actio
                 {"role": "user", "content": user_msg},
             ],
             response_format=ActionOutput,
+            timeout=30.0,
         )
         return response.choices[0].message.parsed  # type: ignore[return-value]
     else:
@@ -99,11 +125,13 @@ async def call_action_llm(state: InvestigationState, client: LLMClient) -> Actio
             ],
             tool_choice={"type": "tool", "name": "submit_action"},
             messages=[{"role": "user", "content": user_msg}],
+            timeout=30.0,
         )
         tool_block = next(b for b in response.content if b.type == "tool_use")
         return ActionOutput.model_validate(tool_block.input)
 
 
+@_llm_retry
 async def call_comms_llm(state: InvestigationState, client: LLMClient) -> CommsOutput:
     drift = state["drift_summary"]
     user_msg = prompts.comms.USER.format(
@@ -125,6 +153,7 @@ async def call_comms_llm(state: InvestigationState, client: LLMClient) -> CommsO
                 {"role": "user", "content": user_msg},
             ],
             response_format=CommsOutput,
+            timeout=30.0,
         )
         return response.choices[0].message.parsed  # type: ignore[return-value]
     else:
@@ -141,6 +170,7 @@ async def call_comms_llm(state: InvestigationState, client: LLMClient) -> CommsO
             ],
             tool_choice={"type": "tool", "name": "submit_comms"},
             messages=[{"role": "user", "content": user_msg}],
+            timeout=30.0,
         )
         tool_block = next(b for b in response.content if b.type == "tool_use")
         return CommsOutput.model_validate(tool_block.input)

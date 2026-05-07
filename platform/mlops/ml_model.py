@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import joblib
+import mlflow
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -12,7 +13,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 HERE = Path(__file__).parent
-DATA_PATH = HERE.parent / "data" / "bank-additional-full.csv"
+DATA_PATH = HERE / "bank-additional-full.csv"
 ARTIFACT_PATH = HERE / "bank_marketing_classifier.joblib"
 BASELINE_PATH = HERE / "train_reference_stats.json"
 
@@ -93,11 +94,13 @@ def evaluate(name: str, X, y, pipeline: Pipeline, threshold: float) -> dict:
     return metrics
 
 
-def build_reference_stats(X_train: pd.DataFrame) -> dict:
+def build_reference_stats(X_train: pd.DataFrame, pipeline, threshold: float) -> dict:
     baseline = {"n_train": int(len(X_train)), "numeric": {}, "categorical": {}}
 
     for c in NUMERIC_COLS:
         s = X_train[c]
+        edges = np.linspace(s.min(), s.max(), 11).tolist()
+        counts, _ = np.histogram(s.values, bins=edges)
         baseline["numeric"][c] = {
             "mean": float(s.mean()),
             "std": float(s.std()),
@@ -106,12 +109,21 @@ def build_reference_stats(X_train: pd.DataFrame) -> dict:
             "p90": float(s.quantile(0.90)),
             "min": float(s.min()),
             "max": float(s.max()),
-            "bin_edges": np.linspace(s.min(), s.max(), 11).tolist(),
+            "bin_edges": edges,
+            "frequencies": (counts / len(s)).tolist(),
         }
 
     for c in CATEGORICAL_COLS:
         counts = X_train[c].value_counts(normalize=True).to_dict()
         baseline["categorical"][c] = {k: float(v) for k, v in counts.items()}
+
+    proba_train = pipeline.predict_proba(X_train)[:, 1]
+    out_edges = np.linspace(0.0, 1.0, 11).tolist()
+    out_counts, _ = np.histogram(proba_train, bins=out_edges)
+    baseline["output_distribution"] = {
+        "bin_edges": out_edges,
+        "frequencies": (out_counts / len(proba_train)).tolist(),
+    }
 
     return baseline
 
@@ -135,10 +147,24 @@ def main() -> None:
     print(f"\nSaved pipeline: {ARTIFACT_PATH}")
 
     BASELINE_PATH.write_text(
-        json.dumps(build_reference_stats(X_train), indent=2),
+        json.dumps(build_reference_stats(X_train, pipeline, threshold), indent=2),
         encoding="utf-8",
     )
     print(f"Saved reference stats: {BASELINE_PATH}")
+
+    mlflow.set_tracking_uri("file:./mlruns")
+    mlflow.set_experiment("baseline-training")
+    with mlflow.start_run(run_name="baseline"):
+        mlflow.log_metric("val_recall", float(recall_score(y_val, (pipeline.predict_proba(X_val)[:, 1] >= threshold).astype(int))))
+        mlflow.log_param("operating_threshold", threshold)
+        mlflow.log_param("random_state", RANDOM_STATE)
+        mv = mlflow.sklearn.log_model(
+            pipeline,
+            artifact_path="model",
+            registered_model_name="bank-marketing-classifier",
+        )
+    print(f"\nRegistered baseline in MLflow: models:/bank-marketing-classifier/{mv.registered_model_version}")
+    print(f"Set MODEL_VERSION={mv.registered_model_version} in config or .env")
 
 
 if __name__ == "__main__":

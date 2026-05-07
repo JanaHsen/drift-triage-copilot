@@ -1,5 +1,3 @@
-"""PSI and chi² drift computation against frozen training reference stats."""
-
 import numpy as np
 
 # Smoothing floor — avoids log(0) when a bin is empty.

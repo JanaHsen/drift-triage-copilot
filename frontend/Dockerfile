@@ -4,16 +4,14 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-COPY backend/pyproject.toml backend/uv.lock backend/alembic.ini ./
+COPY frontend/pyproject.toml frontend/uv.lock ./
 RUN uv sync --frozen --no-install-project
 
-COPY backend/app ./app
-COPY contracts ./contracts
-RUN uv sync --frozen
+COPY frontend/app.py ./
 
 RUN useradd --create-home --shell /bin/bash appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-EXPOSE 8000
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 8501
+CMD ["uv", "run", "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]

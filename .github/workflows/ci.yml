@@ -36,5 +36,21 @@ jobs:
           version: "latest"
       - name: Install dependencies
         run: uv sync --dev
-      - name: Run e2e trajectory tests
-        run: uv run pytest tests/e2e/ -v
+      - name: Run tests
+        run: uv run pytest tests/unit/ tests/e2e/ -v
+
+  platform-tests:
+    name: Platform Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+      - name: Install dependencies
+        run: uv sync --frozen --group dev
+      - name: Run tests
+        run: uv run --group dev pytest tests/ -v
