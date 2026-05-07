@@ -88,7 +88,30 @@ services:
     volumes:
       - ./platform/app:/app/app
       - ./contracts:/app/contracts
-      - ./mlops:/app/mlops    # was ./models:/app/models — corrected to actual dir
+      - ./platform/mlops:/app/mlops    # mlops/ lives inside platform/; mounted into container at /app/mlops
+      - ./mlruns:/app/mlruns           # shared MLflow registry between platform and platform-worker
+
+  platform-worker:
+    build:
+      context: .
+      dockerfile: platform/Dockerfile
+    # Override the API's uvicorn command — same image, different entry point.
+    command: uv run python -m app.worker
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://project5:app@postgres:5432/drift_triage_copilot
+      REDIS_URL: redis://redis:6379/0
+      AGENT_BASE_URL: http://backend:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./platform/app:/app/app
+      - ./contracts:/app/contracts
+      - ./platform/mlops:/app/mlops
+      - ./mlruns:/app/mlruns           # shared MLflow registry between platform and platform-worker
 
 volumes:
   postgres_data:

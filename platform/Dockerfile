@@ -9,7 +9,7 @@ WORKDIR /app
 # Two-step layer-cache strategy: install third-party deps first (slow, rarely
 # changes), then install the project itself (fast, changes every commit).
 # Without this split, a one-line code change reinstalls every package.
-COPY pyproject.toml uv.lock ./
+COPY platform/pyproject.toml platform/uv.lock ./
 RUN uv sync --frozen --no-install-project
 
 # Now the application code. This layer rebuilds on every code change but the
