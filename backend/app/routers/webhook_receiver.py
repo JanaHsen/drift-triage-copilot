@@ -1,14 +1,23 @@
 import uuid
+from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+import structlog
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.state import InvestigationState
+from app.core.auth import require_bearer_token
+from app.core.dependencies import (
+    get_graph,
+    get_llm_client,
+    get_session,
+    get_session_factory,
+)
 from app.db.models import Investigation
-from app.db.session import get_session
 from app.schemas.investigations import DriftWebhookPayload
 
+logger = structlog.get_logger()
 router = APIRouter(prefix="/v1/webhooks")
 
 
@@ -27,27 +36,38 @@ async def _run_graph(
         }
     }
     final_state = await graph.ainvoke(state, config=config)
-    summary = final_state.get("summary") if final_state else None
-    if final_state and not final_state.get("is_stale") and summary:
-        async with session_factory() as session:
-            investigation = await session.get(
-                Investigation, uuid.UUID(investigation_id)
-            )
-            if investigation:
-                investigation.action_decided = final_state.get("proposed_action")
-                investigation.summary = summary
-                investigation.resolution = final_state.get("resolution")
-                investigation.status = "resolved"
-                await session.commit()
+    if not final_state:
+        return
+    async with session_factory() as session:
+        investigation = await session.get(Investigation, uuid.UUID(investigation_id))
+        if not investigation:
+            return
+        if final_state.get("is_stale"):
+            investigation.is_stale = True
+            investigation.status = "resolved"
+        elif final_state.get("summary"):
+            investigation.action_decided = final_state.get("proposed_action")
+            investigation.summary = final_state.get("summary")
+            investigation.resolution = final_state.get("resolution")
+            investigation.status = "resolved"
+        await session.commit()
 
 
-@router.post("/drift", status_code=202)
+@router.post("/drift", status_code=202, dependencies=[Depends(require_bearer_token)])
 async def receive_drift_webhook(
     payload: DriftWebhookPayload,
-    request: Request,
     background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
+    graph: Any = Depends(get_graph),
+    llm_client: Any = Depends(get_llm_client),
+    session_factory: Any = Depends(get_session_factory),
 ) -> dict[str, str]:
+    logger.info(
+        "webhook.received",
+        event_id=payload.event_id,
+        model_name=payload.model_name,
+        severity=payload.severity,
+    )
     investigation = Investigation(
         event_id=payload.event_id,
         model_name=payload.model_name,
@@ -88,11 +108,11 @@ async def receive_drift_webhook(
 
     background_tasks.add_task(
         _run_graph,
-        request.app.state.graph,
+        graph,
         initial_state,
         str(investigation.id),
-        request.app.state.llm_client,
-        request.app.state.session_factory,
+        llm_client,
+        session_factory,
     )
 
     return {"status": "accepted", "investigation_id": str(investigation.id)}
