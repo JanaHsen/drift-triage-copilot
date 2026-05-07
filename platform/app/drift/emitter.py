@@ -1,15 +1,13 @@
-"""HTTP client that POSTs DriftWebhookPayload to the agent's receiver."""
-
-import logging
 import uuid
 from datetime import datetime, timezone
 
 import httpx
+import structlog
 
-from app.core.settings import settings
+from app.core.config import settings
 from contracts.v1.webhooks import DriftSummary, DriftWebhookPayload, DriftWindow
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 async def emit_drift_webhook(
@@ -56,8 +54,5 @@ async def emit_drift_webhook(
     )
     response.raise_for_status()
 
-    logger.info(
-        "Emitted drift webhook event_id=%s severity=%s prev=%s -> %s",
-        event_id, severity, previous_severity, url,
-    )
+    logger.info("drift.webhook_emitted", event_id=event_id, severity=severity, previous_severity=previous_severity)
     return event_id

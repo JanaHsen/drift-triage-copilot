@@ -1,12 +1,11 @@
 """MLflow stage transition. Single atomic write — promote target, archive whatever was Production."""
 
-import logging
-
+import structlog
 import mlflow
 
-from app.core.settings import settings
+from app.core.config import settings
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 def promote_to_production(model_name: str, target_version: str) -> tuple[str, list[str]]:
@@ -19,9 +18,6 @@ def promote_to_production(model_name: str, target_version: str) -> tuple[str, li
     mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
     client = mlflow.MlflowClient()
 
-    # Capture what's currently Production BEFORE the transition so we can report it accurately.
-    # str() coerces because the file-store backend returns versions as int while
-    # the REST backend returns them as str — contract requires list[str].
     currently_prod = [
         str(mv.version)
         for mv in client.search_model_versions(f"name='{model_name}'")
@@ -35,8 +31,5 @@ def promote_to_production(model_name: str, target_version: str) -> tuple[str, li
         archive_existing_versions=True,
     )
 
-    logger.info(
-        "Promoted %s v%s to Production. Archived: %s",
-        model_name, target_version, currently_prod,
-    )
+    logger.info("promotion.complete", model_name=model_name, version=target_version, archived=currently_prod)
     return target_version, currently_prod

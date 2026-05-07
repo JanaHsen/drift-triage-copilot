@@ -1,25 +1,22 @@
-"""Worker process — dequeues action jobs from Redis and dispatches to handlers."""
+# Worker process: dequeues action jobs from Redis and dispatches to handlers
 
 import asyncio
 import json
-import logging
 import signal
 from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from app.core.settings import settings
+import structlog
+
+from app.core.config import settings
 from app.db.base import build_engine
 from app.db.models import ActionJob  # noqa: F401  — ensure model is loaded
-from app.queue.client import build_redis_client
+from app.queue import build_redis_client
 from app.workers.handlers import HANDLERS
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-logger = logging.getLogger("platform.worker")
+logger = structlog.get_logger()
 
 # Must match the keys used by the API's enqueue path.
 _QUEUE_KEY = "platform:actions:queue"

@@ -23,7 +23,6 @@ async def require_bearer_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Constant-time compare prevents timing attacks on the token.
     if not secrets.compare_digest(parts[1], settings.agent_token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

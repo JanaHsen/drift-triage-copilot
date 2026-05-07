@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "drift_triage": "./app/agents/graph_studio.py:graph"
+  },
+  "env": "../.env"
+}

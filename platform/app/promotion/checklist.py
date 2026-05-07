@@ -1,16 +1,11 @@
-"""Day-4 promotion checklist. Each gate returns ChecklistResult; caller aggregates pass/fail."""
-
 import json
-import logging
 from pathlib import Path
 
 import mlflow
 from mlflow.exceptions import MlflowException
 
-from app.core.settings import settings
+from app.core.config import settings
 from contracts.v1.promote import ChecklistResult
-
-logger = logging.getLogger(__name__)
 
 
 def _client() -> mlflow.MlflowClient:

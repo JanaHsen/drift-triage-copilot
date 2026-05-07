@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app.core.lifespan import lifespan
-from app.routers import actions, drift, health, predict, promote
+from app.routers import actions, drift, health, model_info, predict, promote
 
 app = FastAPI(
     title="Drift Triage Co-Pilot — Platform",
@@ -15,3 +15,4 @@ app.include_router(predict.router)
 app.include_router(drift.router)
 app.include_router(actions.router)
 app.include_router(promote.router)
+app.include_router(model_info.router)

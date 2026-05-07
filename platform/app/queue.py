@@ -1,14 +1,10 @@
-"""Redis client + job enqueue/dequeue helpers. Platform-namespaced keys."""
-
 import json
-import logging
 from typing import Any
 
+import structlog
 import redis.asyncio as redis
 
-from app.core.settings import settings
-
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 # Platform's Redis key prefix — keeps us out of backend's namespace.
 _QUEUE_KEY = "platform:actions:queue"
@@ -38,7 +34,6 @@ async def claim_idempotency_key(
     was_set = await client.set(key, job_id, nx=True, ex=_IDEMPOTENCY_TTL_SECONDS)
     if was_set:
         return None
-    # Key already existed; return whoever claimed it first.
     return await client.get(key)
 
 
@@ -47,8 +42,6 @@ async def enqueue_job(
 ) -> None:
     """Push a job onto the queue and store its full payload for the worker."""
     job_key = f"{_JOB_KEY_PREFIX}{job_id}"
-    # Store payload as JSON for the worker to retrieve, then push job_id onto
-    # the queue. Worker pops job_id, looks up payload, processes.
     await client.set(job_key, json.dumps(payload))
     await client.lpush(_QUEUE_KEY, job_id)
-    logger.info("Enqueued job_id=%s action=%s", job_id, payload.get("action"))
+    logger.info("queue.enqueued", job_id=job_id, action=payload.get("action"))
