@@ -1,0 +1,22 @@
+{
+  "phase1_nodes": [
+    "supervisor",
+    "triage",
+    "supervisor"
+  ],
+  "interrupted": true,
+  "phase2_nodes": [
+    "action",
+    "supervisor",
+    "dispatch",
+    "supervisor",
+    "comms",
+    "supervisor"
+  ],
+  "expected_state": {
+    "triage_result": "real_drift",
+    "proposed_action": "retrain",
+    "dispatched": true,
+    "is_stale": false
+  }
+}

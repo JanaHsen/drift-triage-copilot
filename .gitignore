@@ -58,6 +58,11 @@ logs/
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
 
+# LangGraph Studio local state
+.langgraph_api/
+
+# setuptools build artifacts
+contracts/build/
 # Claude Code project-local settings
 .claude/
 
