@@ -58,6 +58,12 @@ logs/
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
 
+# LangGraph Studio local state
+.langgraph_api/
+
+# setuptools build artifacts
+contracts/build/
+
 # Test artifacts and tool caches
 .pytest_cache/
 .coverage
