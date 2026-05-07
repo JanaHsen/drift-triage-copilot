@@ -63,6 +63,11 @@ logs/
 
 # setuptools build artifacts
 contracts/build/
+# Claude Code project-local settings
+.claude/
+
+# MLflow local SQLite tracking database
+mlflow.db
 
 # Test artifacts and tool caches
 .pytest_cache/
