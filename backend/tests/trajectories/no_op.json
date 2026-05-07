@@ -1,0 +1,16 @@
+{
+  "nodes": [
+    "supervisor",
+    "triage",
+    "supervisor",
+    "comms",
+    "supervisor"
+  ],
+  "interrupted": false,
+  "expected_state": {
+    "triage_result": "no_drift",
+    "proposed_action": null,
+    "dispatched": false,
+    "is_stale": false
+  }
+}
