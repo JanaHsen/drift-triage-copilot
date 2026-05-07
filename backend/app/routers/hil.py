@@ -81,7 +81,9 @@ async def _resume_graph(
         await session.commit()
 
 
-@router.post("/{item_id}/approve", status_code=200, dependencies=[Depends(require_bearer_token)])
+@router.post(
+    "/{item_id}/approve", status_code=200, dependencies=[Depends(require_bearer_token)]
+)
 async def approve_hil_item(
     item_id: uuid.UUID,
     body: HILApproveRequest,
@@ -125,7 +127,9 @@ async def approve_hil_item(
     return {"status": "approved", "investigation_id": str(investigation.id)}
 
 
-@router.post("/{item_id}/reject", status_code=200, dependencies=[Depends(require_bearer_token)])
+@router.post(
+    "/{item_id}/reject", status_code=200, dependencies=[Depends(require_bearer_token)]
+)
 async def reject_hil_item(
     item_id: uuid.UUID,
     body: HILRejectRequest,
