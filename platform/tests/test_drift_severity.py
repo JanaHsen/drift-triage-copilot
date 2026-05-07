@@ -1,5 +1,3 @@
-"""Unit tests for the severity classifier."""
-
 from app.drift.severity import classify_severity
 
 # Production thresholds — keep tests aligned with the settings defaults.
@@ -23,12 +21,10 @@ def test_critical_at_threshold():
 
 
 def test_output_drift_alone_can_trigger_critical():
-    """Output-distribution drift counts toward severity even if no feature drifted."""
     assert classify_severity({}, output_distribution_drift=0.6, **THRESHOLDS) == "critical"
 
 
 def test_max_wins_across_features_and_output():
-    """Severity = highest band hit by ANY signal."""
     psi = {"age": 0.05, "job": 0.30}  # job is 'high'
     assert classify_severity(psi, output_distribution_drift=0.01, **THRESHOLDS) == "high"
 

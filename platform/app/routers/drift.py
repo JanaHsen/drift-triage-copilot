@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import require_bearer_token
-from app.db.session import get_session
-from app.drift.service import run_drift_check
+from app.core.dependencies import get_session
+from app.drift.orchestrator import run_drift_check
 
 router = APIRouter(tags=["drift"])
 

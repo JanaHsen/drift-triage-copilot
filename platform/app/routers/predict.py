@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import require_bearer_token
 from app.db.models import Prediction
-from app.db.session import get_session
+from app.core.dependencies import get_session
 from app.ml.predict import score
 from app.schemas.predict import PredictionRequest, PredictionResponse
 

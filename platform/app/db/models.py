@@ -1,5 +1,3 @@
-"""Platform-side ORM tables. Distinct names from backend — no collisions."""
-
 import uuid
 from datetime import datetime
 

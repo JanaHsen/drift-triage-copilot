@@ -1,8 +1,4 @@
-"""Map raw drift values to the severity enum used in the contract."""
-
-from typing import Literal
-
-SeverityLevel = Literal["low", "medium", "high", "critical"]
+from contracts.v1.webhooks import SeverityLevel
 
 
 def classify_severity(

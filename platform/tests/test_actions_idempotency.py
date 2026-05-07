@@ -1,9 +1,3 @@
-"""Unit tests for the idempotency-key derivation used by the action router.
-
-The router dedupes incoming ActionRequests via a hash over three fields.
-Lock that contract down so a future tweak to the router can't silently
-break the dedup behavior we tested with curl."""
-
 from app.routers.actions import _derive_idempotency_key
 from contracts.v1.actions import ActionRequest
 
@@ -44,15 +38,12 @@ def test_different_target_model_uri_changes_key():
 
 
 def test_payload_is_not_part_of_key():
-    """The dedupe is intentional on intent, not on free-form payload contents:
-    re-sending the same retrain with extra notes should still dedupe."""
     a = _action(payload={"reason": "smoke test"})
     b = _action(payload={"reason": "different note"})
     assert _derive_idempotency_key(a) == _derive_idempotency_key(b)
 
 
 def test_approver_is_not_part_of_key():
-    """Same intent, different approver → still a duplicate."""
     a = _action(action="replay", approver_user_id=None)
     b = _action(action="replay", approver_user_id="rasha@bootcamp")
     assert _derive_idempotency_key(a) == _derive_idempotency_key(b)
