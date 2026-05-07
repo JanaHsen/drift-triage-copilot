@@ -1,5 +1,3 @@
-"""POST /v1/actions — receives ActionRequest from agent, enqueues for worker."""
-
 import hashlib
 import uuid
 
@@ -9,21 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import require_bearer_token
 from app.db.models import ActionJob
-from app.db.session import get_session
-from app.queue.client import claim_idempotency_key, enqueue_job
+from app.core.dependencies import get_session
+from app.queue import claim_idempotency_key, enqueue_job
 from contracts.v1.actions import ActionRequest, ActionResponse
 
 router = APIRouter(prefix="/v1/actions", tags=["actions"])
 
 
 def _derive_idempotency_key(req: ActionRequest) -> str:
-    """
-    Contract has no idempotency_key field (open issue with Rasha). Derive a
-    deterministic one from the request fields that uniquely identify it:
-    same investigation + same action + same target = same key. Repeated
-    requests with these three identical get deduped in Redis.
-    """
-    raw = f"{req.investigation_id}|{req.action}|{req.target_model_uri}"
+    raw = f"{req.investigation_id}:{req.action}:{req.target_model_uri}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
@@ -38,7 +30,9 @@ async def receive_action(
     session: AsyncSession = Depends(get_session),
 ) -> ActionResponse:
     redis_client = request.app.state.redis_client
-    idempotency_key = _derive_idempotency_key(payload)
+    idempotency_key = (
+        request.headers.get("x-idempotency-key") or _derive_idempotency_key(payload)
+    )
 
     # Check if we've seen this exact action before.
     new_job_id = str(uuid.uuid4())

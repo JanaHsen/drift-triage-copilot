@@ -6,8 +6,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-# Two-step layer-cache strategy: install third-party deps first (slow, rarely
-# changes), then install the project itself (fast, changes every commit).
+# Two-step layer-cache strategy: install third-party deps first (slow, rarely changes), then install the project itself (fast, changes every commit).
 # Without this split, a one-line code change reinstalls every package.
 COPY platform/pyproject.toml platform/uv.lock ./
 RUN uv sync --frozen --no-install-project

@@ -1,5 +1,3 @@
-"""FastAPI dependency that yields an AsyncSession for each request."""
-
 from typing import AsyncIterator
 
 from fastapi import Request

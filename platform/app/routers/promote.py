@@ -1,6 +1,4 @@
-"""POST /v1/promote — checklist gate, atomic transition, audit log."""
-
-import logging
+import structlog
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
@@ -8,12 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import require_bearer_token
 from app.db.models import PromotionAudit
-from app.db.session import get_session
+from app.core.dependencies import get_session
 from app.promotion.checklist import run_checklist
-from app.promotion.registry import promote_to_production
+from app.promotion.promote import promote_to_production
 from contracts.v1.promote import PromotionRequest, PromotionResponse
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 router = APIRouter(prefix="/v1/promote", tags=["promote"])
 
 
