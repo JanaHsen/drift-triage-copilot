@@ -31,4 +31,7 @@ docs/
 *.parquet
 data/
 
+# MLflow local tracking (can be large; mounted as volume in compose)
+mlruns/
+
 # Other services' code that this service doesn't need
