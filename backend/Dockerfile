@@ -4,11 +4,16 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
+# contracts is a sibling path-dependency declared in pyproject.toml as
+# `path = "../contracts"`, which resolves to /contracts when WORKDIR is /app.
+# Must be present before the first `uv sync`, since path deps are still
+# resolved/installed even with --no-install-project.
+COPY contracts /contracts
+
 COPY backend/pyproject.toml backend/uv.lock backend/alembic.ini ./
 RUN uv sync --frozen --no-install-project
 
 COPY backend/app ./app
-COPY contracts ./contracts
 RUN uv sync --frozen
 
 RUN useradd --create-home --shell /bin/bash appuser \
